@@ -22,8 +22,8 @@ function getRepo(pkg) {
   return url[3] + '/' + url[4].replace(/\.[^/.]+$/, '')
 }
 
-function getTag() {
-  return `v${version}`
+function getTag(pkg) {
+  return `v${pkg.version}`
 }
 
 export function normalizeOptions(opts = {}) {
@@ -45,7 +45,7 @@ export function compress({ app, output }) {
     return Promise.reject(new Error('Output length does not match app length'))
   }
 
-  return Promise.resolve(app).map((item, index) => {
+  return Promise.resolve(app).map((item, i) => {
     let outputZip = (path.extname(output[i]) === '.zip') ? output[i] : output[i] + '.zip'
     let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${outputZip}`
 
