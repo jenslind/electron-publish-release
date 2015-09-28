@@ -1,4 +1,4 @@
-import Promise from'bluebird')
+import Promise from'bluebird';
 import {exec} from 'child_process';
 import publishRelease from 'publish-release';
 import got from 'got';
@@ -61,7 +61,7 @@ export function release({ token, repo, tag, name, output }) {
     owner: repo.split('/')[0],
     repo: repo.split('/')[1],
     assets: output
-  }).then({ assets_url } => {
+  }).then(({ assets_url }) => {
     return got(assets_url);
   }).then(res => {
     let jsonBody = JSON.parse(res.body)

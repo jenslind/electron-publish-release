@@ -2,7 +2,7 @@
 import Promise from 'bluebird';
 import chalk from 'chalk';
 import meow from 'meow';
-import
+import {
   normalizeOptions,
   compress,
   release,
