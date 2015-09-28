@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-'use strict'
-const Promise = require('bluebird');
-const {
+import Promise from 'bluebird';
+import chalk from 'chalk';
+import meow from 'meow';
+import
   normalizeOptions,
   compress,
   release,
   updateUrl
-} = require('./index');
-const chalk = require('chalk')
-const meow = require('meow')
+} from './index';
+
 const cli = meow({
   help: [
     'Usage',

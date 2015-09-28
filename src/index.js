@@ -1,11 +1,13 @@
-'use strict'
-const Promise = require('bluebird')
-const execAsync = Promise.promisify(require('child_process').exec)
-const publishReleaseAsync = Promise.promisify(require('publish-release'))
-const got = require('got')
-const loadJsonFile = require('load-json-file')
-const writeJsonFile = require('write-json-file')
-const path = require('path')
+import Promise from'bluebird')
+import {exec} from 'child_process';
+import publishRelease from 'publish-release';
+import got from 'got';
+import loadJsonFile from 'load-json-file';
+import writeJsonFile from 'write-json-file';
+import path from 'path';
+
+const execAsync = Promise.promisify(exec)
+const publishReleaseAsync = Promise.promisify(publishRelease)
 
 function loadPackageJson() {
   try {
