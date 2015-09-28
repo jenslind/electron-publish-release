@@ -17,9 +17,8 @@ const cli = meow({
   ]
 })
 
-let opts = cli.flags
-
-var publish = new Publish(opts)
+const opts = cli.flags
+const publish = new Publish(opts)
 
 if (!opts.tag || !opts.repo || !opts.app || !opts.token) {
   console.log('Missing required options.')
@@ -27,20 +26,20 @@ if (!opts.tag || !opts.repo || !opts.app || !opts.token) {
 }
 
 publish.compress()
-  .catch(function (err) {
+  .catch(err => {
     console.log(chalk.red(err))
     process.exit()
   })
-  .then(function () {
+  .then(() => {
     return publish.release()
   })
-  .catch(function (err) {
+  .catch(err => {
     console.log(chalk.red(err))
     process.exit()
   })
-  .then(function () {
+  .then(() => {
     return publish.updateUrl()
   })
-  .then(function () {
+  .then(() => {
     console.log(chalk.green('Published new release to GitHub (' + opts.tag + ')'))
   })

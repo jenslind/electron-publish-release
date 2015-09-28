@@ -9,8 +9,8 @@ const path = require('path')
 
 export default class Publish {
 
-  constructor (opts) {
-    this.opts = (opts) ? opts : {}
+  constructor (opts = {}) {
+    this.opts = opts;
     if (!opts.repo) opts.repo = this._getRepo()
     if (!opts.tag) opts.tag = this._getTag()
     if (!opts.name) opts.name = opts.tag
@@ -21,18 +21,18 @@ export default class Publish {
 
   // Zip compress .app
   compress () {
-    let self = this
+    let { app, output } = this.opts;
 
-    if (!Array.isArray(self.opts.app)) self.opts.app = self.opts.app.replace(/ /g, '').split(',')
-    if (!Array.isArray(self.opts.output)) self.opts.output = self.opts.output.replace(/ /g, '').split(',')
+    if (!Array.isArray(app)) app = app.replace(/ /g, '').split(',')
+    if (!Array.isArray(output)) output = output.replace(/ /g, '').split(',')
 
-    return new Promise(function (resolve, reject) {
-      if (self.opts.app.length !== self.opts.output.length) reject(new Error('Output length does not match app length'))
+    return new Promise((resolve, reject) => {
+      if (app.length !== output.length) reject(new Error('Output length does not match app length'))
 
-      for (let i in self.opts.app) {
-        let output = (path.extname(self.opts.output[i]) === '.zip') ? self.opts.output[i] : self.opts.output[i] + '.zip'
-        let cmd = 'ditto -c -k --sequesterRsrc --keepParent ' + self.opts.app[i] + ' ' + output
-        exec(cmd, function (err) {
+      for (let i in app) {
+        let outputZip = (path.extname(output[i]) === '.zip') ? output[i] : output[i] + '.zip'
+        let cmd = `ditto -c -k --sequesterRsrc --keepParent ${app[i]} ${outputZip}`;
+        exec(cmd, err => {
           if (!err) {
             resolve()
           } else {
@@ -45,21 +45,19 @@ export default class Publish {
 
   // Create new release with zip as asset.
   release () {
-    let self = this
-
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
       publishRelease({
-        token: self.opts.token,
-        owner: self.opts.repo.split('/')[0],
-        repo: self.opts.repo.split('/')[1],
-        tag: self.opts.tag,
-        name: self.opts.name,
-        assets: self.opts.output
-      }, function (err, release) {
+        token: this.opts.token,
+        owner: this.opts.repo.split('/')[0],
+        repo: this.opts.repo.split('/')[1],
+        tag: this.opts.tag,
+        name: this.opts.name,
+        assets: this.opts.output
+      }, (err, release) => {
         if (!err) {
-          got(release.assets_url).then(function (res) {
+          got(release.assets_url).then(res => {
             var jsonBody = JSON.parse(res.body)
-            self._releaseUrl = jsonBody[0].browser_download_url
+            this._releaseUrl = jsonBody[0].browser_download_url
             resolve()
           })
         } else {
@@ -71,15 +69,14 @@ export default class Publish {
 
   // Update auto_update.json file with latest url.
   updateUrl () {
-    let self = this
-    return new Promise(function (resolve) {
-      loadJsonFile('./auto_updater.json').then(function (content) {
-        content.url = self._releaseUrl
-        writeJsonFile('./auto_updater.json', content).then(function () {
+    return new Promise(resolve => {
+      loadJsonFile('./auto_updater.json').then(content => {
+        content.url = this._releaseUrl
+        writeJsonFile('./auto_updater.json', content).then(() => {
           resolve()
         })
       })
-      .catch(function (err) {
+      .catch(err => {
         resolve()
       })
     })
