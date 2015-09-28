@@ -7,7 +7,7 @@
     "electron-release": "cli.js"
   },
   "scripts": {
-    "test": "standard"
+    "test": "standard src/*.js"
   },
   "repository": {
     "type": "git",

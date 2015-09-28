@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import Promise from 'bluebird';
-import chalk from 'chalk';
-import meow from 'meow';
+import Promise from 'bluebird'
+import chalk from 'chalk'
+import meow from 'meow'
 import {
   normalizeOptions,
   compress,
   release,
   updateUrl
-} from './index';
+} from './index'
 
 const cli = meow({
   help: [
