@@ -26,11 +26,19 @@ function getTag (pkg) {
   return `v${pkg.version}`
 }
 
-function ensureZip(file) {
+function ensureArray (val) {
+  if (!Array.isArray(val)) {
+    return val.replace(/ /g, '').split(',')
+  }
+
+  return val
+}
+
+function ensureZip (file) {
   if (path.extname(file) === '.zip') {
-    return file;
+    return file
   } else {
-    return file + '.zip';
+    return file + '.zip'
   }
 }
 
@@ -42,20 +50,21 @@ export function normalizeOptions (opts = {}) {
   if (!opts.name) opts.name = opts.tag
   if (!opts.output) opts.output = opts.app
 
+  opts.app = ensureArray(opts.app)
+  opts.output = ensureArray(opts.output).map(file => {
+    return ensureZip(file)
+  })
+
   return opts
 }
 
 export function compress ({ app, output }) {
-  if (!Array.isArray(app)) app = app.replace(/ /g, '').split(',')
-  if (!Array.isArray(output)) output = output.replace(/ /g, '').split(',')
-
   if (app.length !== output.length) {
     return Promise.reject(new Error('Output length does not match app length'))
   }
 
   return Promise.resolve(app).map((item, i) => {
-    let outputZip = ensureZip(output[i]);
-    let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${outputZip}`
+    let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${output[i]}`
 
     return execAsync(cmd).catch(() => {
       throw new Error('Unable to compress app.')
@@ -68,7 +77,7 @@ export function release ({ token, repo, tag, name, output }) {
     token, tag, name,
     owner: repo.split('/')[0],
     repo: repo.split('/')[1],
-    assets: [ensureZip(output)]
+    assets: output
   }).then(({ assets_url }) => {
     return got(assets_url)
   }).then(res => {
@@ -83,5 +92,5 @@ export function updateUrl (releaseUrl) {
   return loadJsonFile('./auto_updater.json').then(content => {
     content.url = releaseUrl
     return writeJsonFile('./auto_updater.json', content)
-  }).catch(function() {})
+  }).catch(function () {})
 }
