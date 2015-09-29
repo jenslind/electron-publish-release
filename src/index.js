@@ -1,113 +1,96 @@
-'use strict'
-const exec = require('child_process').exec
-const publishRelease = require('publish-release')
-const got = require('got')
-const Promise = require('bluebird')
-const loadJsonFile = require('load-json-file')
-const writeJsonFile = require('write-json-file')
-const path = require('path')
+import Promise from'bluebird'
+import {exec} from 'child_process'
+import publishRelease from 'publish-release'
+import got from 'got'
+import loadJsonFile from 'load-json-file'
+import writeJsonFile from 'write-json-file'
+import path from 'path'
 
-export default class Publish {
+const execAsync = Promise.promisify(exec)
+const publishReleaseAsync = Promise.promisify(publishRelease)
 
-  constructor (opts) {
-    this.opts = (opts) ? opts : {}
-    if (!opts.repo) opts.repo = this._getRepo()
-    if (!opts.tag) opts.tag = this._getTag()
-    if (!opts.name) opts.name = opts.tag
-    if (!opts.output) opts.output = opts.app
+function loadPackageJson () {
+  try {
+    return loadJsonFile.sync('./package.json')
+  } catch (err) {
+    return
+  }
+}
 
-    this._releaseUrl = null
+function getRepo (pkg) {
+  let url = pkg.repository.url.split('/')
+  return url[3] + '/' + url[4].replace(/\.[^/.]+$/, '')
+}
+
+function getTag (pkg) {
+  return `v${pkg.version}`
+}
+
+function ensureArray (val) {
+  if (!Array.isArray(val)) {
+    return val.replace(/ /g, '').split(',')
   }
 
-  // Zip compress .app
-  compress () {
-    let self = this
+  return val
+}
 
-    if (!Array.isArray(self.opts.app)) self.opts.app = self.opts.app.replace(/ /g, '').split(',')
-    if (!Array.isArray(self.opts.output)) self.opts.output = self.opts.output.replace(/ /g, '').split(',')
+function ensureZip (file) {
+  if (path.extname(file) === '.zip') {
+    return file
+  } else {
+    return file + '.zip'
+  }
+}
 
-    return new Promise(function (resolve, reject) {
-      if (self.opts.app.length !== self.opts.output.length) reject(new Error('Output length does not match app length'))
+export function normalizeOptions (opts = {}) {
+  let pkg = loadPackageJson()
 
-      for (let i in self.opts.app) {
-        let output = (path.extname(self.opts.output[i]) === '.zip') ? self.opts.output[i] : self.opts.output[i] + '.zip'
-        let cmd = 'ditto -c -k --sequesterRsrc --keepParent ' + self.opts.app[i] + ' ' + output
-        exec(cmd, function (err) {
-          if (!err) {
-            resolve()
-          } else {
-            reject(new Error('Unable to compress app.'))
-          }
-        })
-      }
+  if (!opts.repo) opts.repo = getRepo(pkg)
+  if (!opts.tag) opts.tag = getTag(pkg)
+  if (!opts.name) opts.name = opts.tag
+  if (!opts.output) opts.output = opts.app
+
+  opts.app = ensureArray(opts.app)
+  opts.output = ensureArray(opts.output).map(file => {
+    return ensureZip(file)
+  })
+
+  return opts
+}
+
+export function compress ({ app, output }) {
+  if (app.length !== output.length) {
+    return Promise.reject(new Error('Output length does not match app length'))
+  }
+
+  return Promise.resolve(app).map((item, i) => {
+    let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${output[i]}`
+
+    return execAsync(cmd).catch(() => {
+      throw new Error('Unable to compress app.')
     })
-  }
+  })
+}
 
-  // Create new release with zip as asset.
-  release () {
-    let self = this
+export function release ({ token, repo, tag, name, output }) {
+  return publishReleaseAsync({
+    token, tag, name,
+    owner: repo.split('/')[0],
+    repo: repo.split('/')[1],
+    assets: output
+  }).then(({ assets_url }) => {
+    return got(assets_url)
+  }).then(res => {
+    let jsonBody = JSON.parse(res.body)
+    return jsonBody[0].browser_download_url
+  }).catch(() => {
+    throw new Error('Unable to create a new release on GitHub.')
+  })
+}
 
-    return new Promise(function (resolve, reject) {
-      publishRelease({
-        token: self.opts.token,
-        owner: self.opts.repo.split('/')[0],
-        repo: self.opts.repo.split('/')[1],
-        tag: self.opts.tag,
-        name: self.opts.name,
-        assets: self.opts.output
-      }, function (err, release) {
-        if (!err) {
-          got(release.assets_url).then(function (res) {
-            var jsonBody = JSON.parse(res.body)
-            self._releaseUrl = jsonBody[0].browser_download_url
-            resolve()
-          })
-        } else {
-          reject(new Error('Unable to create a new release on GitHub.'))
-        }
-      })
-    })
-  }
-
-  // Update auto_update.json file with latest url.
-  updateUrl () {
-    let self = this
-    return new Promise(function (resolve) {
-      loadJsonFile('./auto_updater.json').then(function (content) {
-        content.url = self._releaseUrl
-        writeJsonFile('./auto_updater.json', content).then(function () {
-          resolve()
-        })
-      })
-      .catch(function (err) {
-        resolve()
-      })
-    })
-  }
-
-  // Load package.json
-  _loadPackageJson () {
-    try {
-      return loadJsonFile.sync('./package.json')
-    } catch (err) {
-      return
-    }
-  }
-
-  // Get repo from package.json
-  _getRepo () {
-    let pkg = this._loadPackageJson()
-
-    let url = pkg.repository.url.split('/')
-    return url[3] + '/' + url[4].replace(/\.[^/.]+$/, '')
-  }
-
-  // Get tag (version) from package.json
-  _getTag () {
-    let pkg = this._loadPackageJson()
-
-    let version = pkg.version
-    return 'v' + version
-  }
-
+export function updateUrl (releaseUrl) {
+  return loadJsonFile('./auto_updater.json').then(content => {
+    content.url = releaseUrl
+    return writeJsonFile('./auto_updater.json', content)
+  }).catch(function () {})
 }

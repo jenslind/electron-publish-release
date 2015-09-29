@@ -1,8 +1,14 @@
 #!/usr/bin/env node
-'use strict'
-const Publish = require('./index')
-const chalk = require('chalk')
-const meow = require('meow')
+import Promise from 'bluebird'
+import chalk from 'chalk'
+import meow from 'meow'
+import {
+  normalizeOptions,
+  compress,
+  release,
+  updateUrl
+} from './index'
+
 const cli = meow({
   help: [
     'Usage',
@@ -17,30 +23,21 @@ const cli = meow({
   ]
 })
 
-let opts = cli.flags
-
-var publish = new Publish(opts)
+const opts = normalizeOptions(cli.flags)
 
 if (!opts.tag || !opts.repo || !opts.app || !opts.token) {
   console.log('Missing required options.')
   process.exit()
 }
 
-publish.compress()
-  .catch(function (err) {
-    console.log(chalk.red(err))
-    process.exit()
-  })
-  .then(function () {
-    return publish.release()
-  })
-  .catch(function (err) {
-    console.log(chalk.red(err))
-    process.exit()
-  })
-  .then(function () {
-    return publish.updateUrl()
-  })
-  .then(function () {
+Promise.resolve()
+  .then(() => compress(opts))
+  .then(() => release(opts))
+  .then(url => updateUrl(url))
+  .then(() => {
     console.log(chalk.green('Published new release to GitHub (' + opts.tag + ')'))
+  })
+  .catch(err => {
+    console.log(chalk.red(err))
+    process.exit()
   })
