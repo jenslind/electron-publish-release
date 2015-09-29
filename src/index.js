@@ -26,6 +26,14 @@ function getTag (pkg) {
   return `v${pkg.version}`
 }
 
+function ensureZip(file) {
+  if (path.extname(file) === '.zip') {
+    return file;
+  } else {
+    return file + '.zip';
+  }
+}
+
 export function normalizeOptions (opts = {}) {
   let pkg = loadPackageJson()
 
@@ -46,7 +54,7 @@ export function compress ({ app, output }) {
   }
 
   return Promise.resolve(app).map((item, i) => {
-    let outputZip = (path.extname(output[i]) === '.zip') ? output[i] : output[i] + '.zip'
+    let outputZip = ensureZip(output[i]);
     let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${outputZip}`
 
     return execAsync(cmd).catch(() => {
@@ -60,7 +68,7 @@ export function release ({ token, repo, tag, name, output }) {
     token, tag, name,
     owner: repo.split('/')[0],
     repo: repo.split('/')[1],
-    assets: output
+    assets: [ensureZip(output)]
   }).then(({ assets_url }) => {
     return got(assets_url)
   }).then(res => {
@@ -75,5 +83,5 @@ export function updateUrl (releaseUrl) {
   return loadJsonFile('./auto_updater.json').then(content => {
     content.url = releaseUrl
     return writeJsonFile('./auto_updater.json', content)
-  }).catch()
+  }).catch(function() {})
 }
