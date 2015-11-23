@@ -36,8 +36,13 @@ var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
 
+var _singleLineLog = require('single-line-log');
+
+var _prettyBytes = require('pretty-bytes');
+
+var _prettyBytes2 = _interopRequireDefault(_prettyBytes);
+
 var execAsync = _bluebird2['default'].promisify(_child_process.exec);
-var publishReleaseAsync = _bluebird2['default'].promisify(_publishRelease2['default']);
 
 function loadPackageJson() {
   try {
@@ -115,13 +120,9 @@ function release(_ref2) {
   var tag = _ref2.tag;
   var name = _ref2.name;
   var output = _ref2.output;
+  var verbose = _ref2.verbose;
 
-  return publishReleaseAsync({
-    token: token, tag: tag, name: name,
-    owner: repo.split('/')[0],
-    repo: repo.split('/')[1],
-    assets: output
-  }).then(function (_ref3) {
+  return publishReleaseAsync({ token: token, repo: repo, tag: tag, name: name, output: output, verbose: verbose }).then(function (_ref3) {
     var assets_url = _ref3.assets_url;
 
     return (0, _got2['default'])(assets_url);
@@ -139,4 +140,41 @@ function updateUrl(releaseUrl) {
     content.url = releaseUrl;
     return (0, _writeJsonFile2['default'])('./auto_updater.json', content);
   })['catch'](function () {});
+}
+
+function publishReleaseAsync(_ref4) {
+  var token = _ref4.token;
+  var repo = _ref4.repo;
+  var tag = _ref4.tag;
+  var name = _ref4.name;
+  var output = _ref4.output;
+  var verbose = _ref4.verbose;
+
+  return new _bluebird2['default'](function (resolve, reject) {
+    var publishRelease = new _publishRelease2['default']({
+      token: token, tag: tag, name: name,
+      owner: repo.split('/')[0],
+      repo: repo.split('/')[1],
+      assets: output
+    }, function (err, release) {
+      if (err) return reject(err);
+      resolve(release);
+    });
+
+    if (verbose) {
+      publishRelease.on('upload-progress', render);
+      publishRelease.on('uploaded-asset', function () {
+        return _singleLineLog.stdout.clear();
+      });
+    }
+  });
+}
+
+function render(name, prog) {
+  var pct = prog.percentage;
+  var speed = (0, _prettyBytes2['default'])(prog.speed);
+  var bar = Array(Math.floor(50 * pct / 100)).join('=') + '>';
+  while (bar.length < 50) bar += ' ';
+
+  (0, _singleLineLog.stdout)(['\nUploading ' + name + '\n', '[' + bar + '] ' + pct.toFixed(1) + '% (' + speed + '/s)\n'].join(''));
 }

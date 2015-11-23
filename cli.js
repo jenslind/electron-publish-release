@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict';
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 var _bluebird = require('bluebird');
@@ -31,7 +33,7 @@ if (!opts.tag || !opts.repo || !opts.app || !opts.token) {
 _bluebird2['default'].resolve().then(function () {
   return (0, _index.compress)(opts);
 }).then(function () {
-  return (0, _index.release)(opts);
+  return (0, _index.release)(_extends({}, opts, { verbose: true }));
 }).then(function (url) {
   return (0, _index.updateUrl)(url);
 }).then(function () {
