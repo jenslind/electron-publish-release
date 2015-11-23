@@ -31,7 +31,9 @@
     "got": "^4.2.0",
     "load-json-file": "^1.0.1",
     "meow": "^3.3.0",
+    "pretty-bytes": "^2.0.1",
     "publish-release": "^1.1.0",
+    "single-line-log": "^1.0.1",
     "write-json-file": "^1.1.1"
   },
   "standard": {

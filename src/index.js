@@ -1,13 +1,14 @@
 import Promise from 'bluebird'
 import {exec} from 'child_process'
-import publishRelease from 'publish-release'
+import PublishRelease from 'publish-release'
 import got from 'got'
 import loadJsonFile from 'load-json-file'
 import writeJsonFile from 'write-json-file'
 import path from 'path'
+import { stdout as log } from 'single-line-log';
+import prettyBytes from 'pretty-bytes';
 
 const execAsync = Promise.promisify(exec)
-const publishReleaseAsync = Promise.promisify(publishRelease)
 
 function loadPackageJson () {
   try {
@@ -75,12 +76,8 @@ export function compress ({ app, output }) {
 }
 
 export function release ({ token, repo, tag, name, output }) {
-  return publishReleaseAsync({
-    token, tag, name,
-    owner: repo.split('/')[0],
-    repo: repo.split('/')[1],
-    assets: output
-  }).then(({ assets_url }) => {
+  return publishReleaseAsync({ token, repo, tag, name, output })
+  .then(({ assets_url }) => {
     return got(assets_url)
   }).then(res => {
     let jsonBody = JSON.parse(res.body)
@@ -96,4 +93,33 @@ export function updateUrl (releaseUrl) {
     content.url = releaseUrl
     return writeJsonFile('./auto_updater.json', content)
   }).catch(function () {})
+}
+
+function publishReleaseAsync({ token, repo, tag, name, output }) {
+  return new Promise((resolve, reject) => {
+    const publishRelease = new PublishRelease({
+      token, tag, name,
+      owner: repo.split('/')[0],
+      repo: repo.split('/')[1],
+      assets: output
+    }, (err, release) => {
+      if (err) return reject(err)
+      resolve(release)
+    })
+
+    publishRelease.on('upload-progress', render)
+    publishRelease.on('uploaded-asset', () => log.clear())
+  })
+}
+
+function render (name, prog) {
+  let pct = prog.percentage
+  let speed = prettyBytes(prog.speed)
+  let bar = Array(Math.floor(50 * pct / 100)).join('=') + '>'
+  while (bar.length < 50) bar += ' '
+
+  log([
+    `\nUploading ${name}\n`,
+    `[${bar}] ${pct.toFixed(1)}% (${speed}/s)\n`
+  ].join(''))
 }
