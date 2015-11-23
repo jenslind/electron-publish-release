@@ -32,7 +32,7 @@ if (!opts.tag || !opts.repo || !opts.app || !opts.token) {
 
 Promise.resolve()
   .then(() => compress(opts))
-  .then(() => release(opts))
+  .then(() => release({ ...opts, verbose: true }))
   .then(url => updateUrl(url))
   .then(() => {
     console.log(chalk.green('Published new release to GitHub (' + opts.tag + ')'))

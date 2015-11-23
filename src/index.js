@@ -75,8 +75,8 @@ export function compress ({ app, output }) {
   })
 }
 
-export function release ({ token, repo, tag, name, output }) {
-  return publishReleaseAsync({ token, repo, tag, name, output })
+export function release ({ token, repo, tag, name, output, verbose }) {
+  return publishReleaseAsync({ token, repo, tag, name, output, verbose })
   .then(({ assets_url }) => {
     return got(assets_url)
   }).then(res => {
@@ -95,7 +95,7 @@ export function updateUrl (releaseUrl) {
   }).catch(function () {})
 }
 
-function publishReleaseAsync({ token, repo, tag, name, output }) {
+function publishReleaseAsync({ token, repo, tag, name, output, verbose }) {
   return new Promise((resolve, reject) => {
     const publishRelease = new PublishRelease({
       token, tag, name,
@@ -107,8 +107,10 @@ function publishReleaseAsync({ token, repo, tag, name, output }) {
       resolve(release)
     })
 
-    publishRelease.on('upload-progress', render)
-    publishRelease.on('uploaded-asset', () => log.clear())
+    if (verbose) {
+      publishRelease.on('upload-progress', render)
+      publishRelease.on('uploaded-asset', () => log.clear())
+    }
   })
 }
 

@@ -120,8 +120,9 @@ function release(_ref2) {
   var tag = _ref2.tag;
   var name = _ref2.name;
   var output = _ref2.output;
+  var verbose = _ref2.verbose;
 
-  return publishReleaseAsync({ token: token, repo: repo, tag: tag, name: name, output: output }).then(function (_ref3) {
+  return publishReleaseAsync({ token: token, repo: repo, tag: tag, name: name, output: output, verbose: verbose }).then(function (_ref3) {
     var assets_url = _ref3.assets_url;
 
     return (0, _got2['default'])(assets_url);
@@ -147,6 +148,7 @@ function publishReleaseAsync(_ref4) {
   var tag = _ref4.tag;
   var name = _ref4.name;
   var output = _ref4.output;
+  var verbose = _ref4.verbose;
 
   return new _bluebird2['default'](function (resolve, reject) {
     var publishRelease = new _publishRelease2['default']({
@@ -159,10 +161,12 @@ function publishReleaseAsync(_ref4) {
       resolve(release);
     });
 
-    publishRelease.on('upload-progress', render);
-    publishRelease.on('uploaded-asset', function () {
-      return _singleLineLog.stdout.clear();
-    });
+    if (verbose) {
+      publishRelease.on('upload-progress', render);
+      publishRelease.on('uploaded-asset', function () {
+        return _singleLineLog.stdout.clear();
+      });
+    }
   });
 }
 
