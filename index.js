@@ -122,6 +122,8 @@ function compress(_ref) {
       archive.pipe(output);
 
       _fs2['default'].lstat(pathSrcFile, function (err, stats) {
+        if (err) return reject(err);
+
         var srcFilename = _path2['default'].basename(pathSrcFile);
         if (stats.isDirectory()) {
           archive.directory(pathSrcFile, srcFilename);

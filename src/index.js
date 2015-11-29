@@ -78,6 +78,8 @@ export function compress ({ app, output }) {
       archive.pipe(output)
 
       fs.lstat(pathSrcFile, (err, stats) => {
+        if (err) return reject(err)
+
         const srcFilename = path.basename(pathSrcFile)
         if (stats.isDirectory()) {
           archive.directory(pathSrcFile, srcFilename)
