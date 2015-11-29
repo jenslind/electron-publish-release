@@ -98,9 +98,7 @@ function normalizeOptions() {
   if (!opts.output) opts.output = opts.app;
 
   opts.app = ensureArray(opts.app);
-  opts.output = ensureArray(opts.output).map(function (file) {
-    return ensureZip(file);
-  });
+  opts.output = ensureArray(opts.output).map(ensureZip);
 
   return opts;
 }
