@@ -4,9 +4,11 @@ import PublishRelease from 'publish-release'
 import got from 'got'
 import loadJsonFile from 'load-json-file'
 import writeJsonFile from 'write-json-file'
+import fs from 'fs'
 import path from 'path'
 import { stdout as log } from 'single-line-log'
 import prettyBytes from 'pretty-bytes'
+import archiver from 'archiver'
 
 const execAsync = Promise.promisify(exec)
 
@@ -66,12 +68,34 @@ export function compress ({ app, output }) {
     return Promise.reject(new Error('Output length does not match app length'))
   }
 
-  return Promise.resolve(app).map((item, i) => {
-    let cmd = `ditto -c -k --sequesterRsrc --keepParent ${item} ${output[i]}`
+  const cwd = process.cwd()
 
-    return execAsync(cmd).catch(() => {
-      throw new Error('Unable to compress app.')
+  const promises = app.map((src, index) => {
+    const pathSrcFile = path.join(cwd, src)
+    const pathDstFile = path.join(cwd, output[index])
+
+    return new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(pathDstFile)
+      const archive = archiver('zip')
+
+      output.on('close', resolve)
+      archive.on('error', reject)
+      archive.pipe(output)
+
+      fs.lstat(pathSrcFile, (err, stats) => {
+        const srcFilename = path.basename(pathSrcFile)
+        if (stats.isDirectory()) {
+          archive.directory(pathSrcFile, srcFilename)
+        } else {
+          archive.append(fs.createReadStream(pathSrcFile), { name: srcFilename })
+        }
+        archive.finalize()
+      })
     })
+  })
+
+  return Promise.all(promises).catch((err) => {
+    throw new Error('Unable to compress app. ' + err.stack)
   })
 }
 

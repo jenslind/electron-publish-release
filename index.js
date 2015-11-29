@@ -32,6 +32,10 @@ var _writeJsonFile = require('write-json-file');
 
 var _writeJsonFile2 = _interopRequireDefault(_writeJsonFile);
 
+var _fs = require('fs');
+
+var _fs2 = _interopRequireDefault(_fs);
+
 var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
@@ -41,6 +45,10 @@ var _singleLineLog = require('single-line-log');
 var _prettyBytes = require('pretty-bytes');
 
 var _prettyBytes2 = _interopRequireDefault(_prettyBytes);
+
+var _archiver = require('archiver');
+
+var _archiver2 = _interopRequireDefault(_archiver);
 
 var execAsync = _bluebird2['default'].promisify(_child_process.exec);
 
@@ -105,12 +113,34 @@ function compress(_ref) {
     return _bluebird2['default'].reject(new Error('Output length does not match app length'));
   }
 
-  return _bluebird2['default'].resolve(app).map(function (item, i) {
-    var cmd = 'ditto -c -k --sequesterRsrc --keepParent ' + item + ' ' + output[i];
+  var cwd = process.cwd();
 
-    return execAsync(cmd)['catch'](function () {
-      throw new Error('Unable to compress app.');
+  var promises = app.map(function (src, index) {
+    var pathSrcFile = _path2['default'].join(cwd, src);
+    var pathDstFile = _path2['default'].join(cwd, output[index]);
+
+    return new _bluebird2['default'](function (resolve, reject) {
+      var output = _fs2['default'].createWriteStream(pathDstFile);
+      var archive = (0, _archiver2['default'])('zip');
+
+      output.on('close', resolve);
+      archive.on('error', reject);
+      archive.pipe(output);
+
+      _fs2['default'].lstat(pathSrcFile, function (err, stats) {
+        var srcFilename = _path2['default'].basename(pathSrcFile);
+        if (stats.isDirectory()) {
+          archive.directory(pathSrcFile, srcFilename);
+        } else {
+          archive.append(_fs2['default'].createReadStream(pathSrcFile), { name: srcFilename });
+        }
+        archive.finalize();
+      });
     });
+  });
+
+  return _bluebird2['default'].all(promises)['catch'](function (err) {
+    throw new Error('Unable to compress app. ' + err.stack);
   });
 }
 
