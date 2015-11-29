@@ -14,8 +14,6 @@ var _bluebird = require('bluebird');
 
 var _bluebird2 = _interopRequireDefault(_bluebird);
 
-var _child_process = require('child_process');
-
 var _publishRelease = require('publish-release');
 
 var _publishRelease2 = _interopRequireDefault(_publishRelease);
@@ -49,8 +47,6 @@ var _prettyBytes2 = _interopRequireDefault(_prettyBytes);
 var _archiver = require('archiver');
 
 var _archiver2 = _interopRequireDefault(_archiver);
-
-var execAsync = _bluebird2['default'].promisify(_child_process.exec);
 
 function loadPackageJson() {
   try {

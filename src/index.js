@@ -1,5 +1,4 @@
 import Promise from 'bluebird'
-import {exec} from 'child_process'
 import PublishRelease from 'publish-release'
 import got from 'got'
 import loadJsonFile from 'load-json-file'
@@ -9,8 +8,6 @@ import path from 'path'
 import { stdout as log } from 'single-line-log'
 import prettyBytes from 'pretty-bytes'
 import archiver from 'archiver'
-
-const execAsync = Promise.promisify(exec)
 
 function loadPackageJson () {
   try {
